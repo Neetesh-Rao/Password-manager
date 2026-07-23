@@ -107,15 +107,18 @@ async function triggerAutofill() {
     
     // Retrieve the specific entry ID
     const { vaultActiveEntryId } = await new Promise(resolve => chrome.storage.local.get(['vaultActiveEntryId'], resolve));
+    console.log("Vault Autofill: Active Entry ID from storage is", vaultActiveEntryId);
     
     let match = null;
     if (vaultActiveEntryId) {
-      match = passwords.find(p => p.id === vaultActiveEntryId);
+      match = passwords.find(p => p.id == vaultActiveEntryId || p._id == vaultActiveEntryId);
+      console.log("Vault Autofill: Match found using Entry ID:", !!match);
     }
     
     // Fallback: Find the best match for this domain
     if (!match) {
       match = passwords.find(p => p.url && currentHost.includes(p.url.replace(/https?:\/\//, '').split('/')[0]));
+      console.log("Vault Autofill: Fallback match found using URL:", !!match);
     }
 
     if (!match) {
@@ -200,6 +203,7 @@ if (DASHBOARD_HOSTS.includes(window.location.hostname)) {
       try {
         const urlObj = new URL(link.href);
         const entryId = link.getAttribute('data-vault-entry-id') || null;
+        console.log("Vault Dashboard: Link clicked! Saving Entry ID:", entryId, "for Host:", urlObj.hostname);
         chrome.storage.local.set({ 
           vaultActiveHostname: urlObj.hostname,
           vaultActiveTime: Date.now(),

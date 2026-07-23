@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         const category = catId ? categoryMap.get(catId) : null;
 
         return {
-          id: row._id,
+          id: row._id.toString(),
           title: row.title,
           password: decryptedPassword,
           notes: decryptedNotes,
