@@ -125,7 +125,7 @@ function DashboardContent() {
       <div className="px-5 pt-[env(safe-area-inset-top)] pb-2">
         <div className="pt-6 pb-4 flex justify-between items-center">
           <div>
-            <p className="text-sm text-vault-muted mb-1">Welcome back</p>
+            <p className="text-sm text-vault-muted mb-1">Welcome back, Abhishek</p>
             <h1 className="text-2xl font-bold tracking-tight font-heading">Your Vault</h1>
           </div>
           <div className="flex items-center gap-3">

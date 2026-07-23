@@ -374,6 +374,14 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
           </div>
         </div>
       )}
+
+      {/* VIP Badge */}
+      <div className="absolute bottom-10 left-0 right-0 flex justify-center pointer-events-none">
+        <div className="flex items-center gap-2.5 text-[11px] font-medium text-vault-muted bg-vault-surface/40 backdrop-blur-sm px-4 py-2 rounded-full border border-vault-border/50 shadow-sm">
+          <div className="w-1.5 h-1.5 rounded-full bg-vault-success animate-pulse"></div>
+          Secured for Abhishek Raj
+        </div>
+      </div>
     </div>
   );
 }
