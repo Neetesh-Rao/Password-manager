@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Eye, EyeOff, Shuffle } from "lucide-react";
+import { Eye, EyeOff, Shuffle, Plus, X } from "lucide-react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { useToast } from "@/components/ui/toast";
@@ -36,11 +36,11 @@ export function AddEditPasswordModal({
   categories,
 }: AddEditPasswordModalProps) {
   const [title, setTitle] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [notes, setNotes] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [url, setUrl] = useState("");
+  const [customFields, setCustomFields] = useState<{ id: string; label: string; value: string }[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const { showToast } = useToast();
@@ -48,18 +48,18 @@ export function AddEditPasswordModal({
   useEffect(() => {
     if (editEntry) {
       setTitle(editEntry.title);
-      setUsername(editEntry.username || "");
       setPassword(editEntry.password);
       setNotes(editEntry.notes || "");
       setCategoryId(editEntry.categoryId || "");
       setUrl(editEntry.url || "");
+      setCustomFields(editEntry.customFields || []);
     } else {
       setTitle("");
-      setUsername("");
       setPassword("");
       setNotes("");
       setCategoryId("");
       setUrl("");
+      setCustomFields([]);
     }
     setShowPassword(false);
   }, [editEntry, isOpen]);
@@ -72,7 +72,7 @@ export function AddEditPasswordModal({
 
     setSaving(true);
     try {
-      const body = { title, username, password, notes, categoryId: categoryId || null, url, isFavorite: editEntry?.isFavorite ?? false };
+      const body = { title, password, notes, categoryId: categoryId || null, url, isFavorite: editEntry?.isFavorite ?? false, customFields };
 
       const res = editEntry
         ? await fetch(`/api/passwords/${editEntry.id}`, {
@@ -116,18 +116,6 @@ export function AddEditPasswordModal({
           />
         </div>
 
-        {/* Username */}
-        <div>
-          <label className="text-xs text-vault-muted font-medium mb-1.5 block">Username / Email</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="username@example.com"
-            className="w-full px-4 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent transition-colors"
-          />
-        </div>
-
         {/* Password */}
         <div>
           <label className="text-xs text-vault-muted font-medium mb-1.5 block">Password *</label>
@@ -160,19 +148,56 @@ export function AddEditPasswordModal({
           <PasswordStrengthMeter password={password} />
         </div>
 
-        {/* Category */}
-        <div>
-          <label className="text-xs text-vault-muted font-medium mb-1.5 block">Category</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full px-4 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent transition-colors appearance-none"
-          >
-            <option value="">Select category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+
+
+        {/* Custom Fields */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-vault-muted font-medium">Custom Fields</label>
+            <button
+              type="button"
+              onClick={() => setCustomFields([...customFields, { id: Math.random().toString(), label: "", value: "" }])}
+              className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold text-vault-accent hover:opacity-80"
+            >
+              <Plus className="w-3 h-3" /> Add Field
+            </button>
+          </div>
+          {customFields.map((field, idx) => (
+            <div key={field.id} className="flex gap-2 items-start">
+              <input
+                type="text"
+                value={field.label}
+                onChange={(e) => {
+                  const newFields = [...customFields];
+                  newFields[idx].label = e.target.value;
+                  setCustomFields(newFields);
+                }}
+                placeholder="Label"
+                className="w-1/3 px-3 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent"
+              />
+              <input
+                type="text"
+                value={field.value}
+                onChange={(e) => {
+                  const newFields = [...customFields];
+                  newFields[idx].value = e.target.value;
+                  setCustomFields(newFields);
+                }}
+                placeholder="Value"
+                className="w-full px-3 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const newFields = customFields.filter((_, i) => i !== idx);
+                  setCustomFields(newFields);
+                }}
+                className="p-3 text-vault-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
         </div>
 
         {/* URL */}
@@ -197,6 +222,21 @@ export function AddEditPasswordModal({
             rows={3}
             className="w-full px-4 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent transition-colors resize-none"
           />
+        </div>
+
+        {/* Category */}
+        <div>
+          <label className="text-xs text-vault-muted font-medium mb-1.5 block">Category</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full px-4 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent transition-colors appearance-none"
+          >
+            <option value="">Select category</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* Actions */}

@@ -17,8 +17,8 @@ import { useToast } from "@/components/ui/toast";
 export interface PasswordEntry {
   id: string;
   title: string;
-  username: string;
   password: string;
+  customFields?: { id: string; label: string; value: string }[];
   notes: string;
   categoryId: string | null;
   categoryName: string | null;
@@ -158,25 +158,8 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
 
       {/* Credentials Section */}
       <div className="bg-muted/10 border border-border/40 rounded-xl flex flex-col">
-        {/* Username row */}
-        {entry.username && (
-          <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border/40">
-            <span className="text-[11px] text-muted-foreground truncate font-medium mr-2">{entry.username}</span>
-            <button 
-              onClick={() => copyToClipboard(entry.username, "Username")}
-              className="p-1 hover:bg-muted/50 rounded-md text-muted-foreground transition-colors flex-shrink-0 active:scale-95"
-            >
-              {copiedField === "Username" ? (
-                <Check className="w-3.5 h-3.5 text-green-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        )}
-
         {/* Password row */}
-        <div className="flex items-center justify-between px-2.5 py-1.5">
+        <div className={`flex items-center justify-between px-2.5 py-1.5 ${entry.customFields && entry.customFields.length > 0 ? "border-b border-border/40" : ""}`}>
           <span className={`text-xs text-foreground truncate mr-2 ${!showPassword ? 'font-mono tracking-[0.2em] mt-0.5' : 'font-medium'}`}>
             {showPassword ? entry.password : "••••••••"}
           </span>
@@ -201,6 +184,26 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
             </button>
           </div>
         </div>
+
+        {/* Custom Fields rows */}
+        {entry.customFields?.map((field, idx) => (
+          <div key={field.id} className={`flex items-center justify-between px-2.5 py-1.5 ${idx !== entry.customFields!.length - 1 ? "border-b border-border/40" : ""}`}>
+            <div className="flex flex-col min-w-0 mr-2">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{field.label}</span>
+              <span className="text-xs text-foreground truncate">{field.value}</span>
+            </div>
+            <button 
+              onClick={() => copyToClipboard(field.value, field.label)}
+              className="p-1 hover:bg-muted/50 rounded-md text-muted-foreground transition-colors flex-shrink-0 active:scale-95"
+            >
+              {copiedField === field.label ? (
+                <Check className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

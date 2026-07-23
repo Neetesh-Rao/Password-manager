@@ -10,6 +10,7 @@ import {
   ChevronRight,
   LogOut,
   Info,
+  Monitor,
 } from "lucide-react";
 import { useApp } from "@/components/providers/app-provider";
 import { PinLockScreen } from "@/components/pin-lock-screen";
@@ -36,6 +37,7 @@ function SettingsContent() {
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [showAutoLockModal, setShowAutoLockModal] = useState(false);
+  const [showExtensionModal, setShowExtensionModal] = useState(false);
   const [showAddPw, setShowAddPw] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -183,6 +185,26 @@ function SettingsContent() {
           </div>
         </div>
 
+        {/* Extension section */}
+        <div className="mb-6">
+          <h2 className="text-xs text-vault-muted font-semibold uppercase tracking-wider mb-3 px-1">Browser Extension</h2>
+          <div className="bg-vault-surface border border-vault-border rounded-2xl overflow-hidden">
+            <button
+              onClick={() => setShowExtensionModal(true)}
+              className="flex items-center justify-between w-full px-4 py-4 hover:bg-vault-bg transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Monitor className="w-5 h-5 text-vault-accent" />
+                <div className="text-left">
+                  <span className="text-sm font-medium block">Vault Autofill</span>
+                  <span className="text-xs text-vault-muted">1-Click Login</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-vault-muted" />
+            </button>
+          </div>
+        </div>
+
         {/* Data section */}
         <div className="mb-6">
           <h2 className="text-xs text-vault-muted font-semibold uppercase tracking-wider mb-3 px-1">Data</h2>
@@ -304,6 +326,41 @@ function SettingsContent() {
               )}
             </button>
           ))}
+        </div>
+      </BottomSheet>
+
+      {/* Extension Guide Modal */}
+      <BottomSheet isOpen={showExtensionModal} onClose={() => setShowExtensionModal(false)} title="Install Extension (Free)">
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <div className="w-6 h-6 rounded-full bg-vault-accent/20 text-vault-accent flex items-center justify-center text-xs font-bold shrink-0">1</div>
+              <p className="text-sm text-vault-text">Download the Extension ZIP file below and extract it.</p>
+            </div>
+            <div className="flex gap-3">
+              <div className="w-6 h-6 rounded-full bg-vault-accent/20 text-vault-accent flex items-center justify-center text-xs font-bold shrink-0">2</div>
+              <p className="text-sm text-vault-text">Open <code className="bg-vault-surface px-1.5 py-0.5 rounded text-xs text-vault-accent">chrome://extensions</code> in your browser.</p>
+            </div>
+            <div className="flex gap-3">
+              <div className="w-6 h-6 rounded-full bg-vault-accent/20 text-vault-accent flex items-center justify-center text-xs font-bold shrink-0">3</div>
+              <p className="text-sm text-vault-text">Turn on <strong>Developer Mode</strong> at the top right, click <strong>Load unpacked</strong>, and select the extracted folder.</p>
+            </div>
+          </div>
+          
+          <div className="pt-4 pb-2">
+            <a
+              href="/vault-extension.zip"
+              download="vault-extension.zip"
+              onClick={() => {
+                showToast("Download started!", "success");
+                setShowExtensionModal(false);
+              }}
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-vault-accent text-background font-semibold rounded-2xl hover:opacity-90 transition-opacity"
+            >
+              <Download className="w-4 h-4" />
+              Download Vault Extension (.zip)
+            </a>
+          </div>
         </div>
       </BottomSheet>
 

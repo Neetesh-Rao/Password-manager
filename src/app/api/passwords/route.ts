@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { username: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } }
       ];
     }
 
@@ -62,13 +61,24 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const decryptedCustomFields = Array.isArray(row.customFields)
+        ? row.customFields.map((field: any) => {
+            let decryptedValue = "";
+            try {
+              decryptedValue = decrypt(field.valueCipher as ICipherField);
+            } catch {
+              decryptedValue = "[decryption error]";
+            }
+            return { id: field._id?.toString() || Math.random().toString(), label: field.label, value: decryptedValue };
+          })
+        : [];
+
         const catId = row.categoryId?.toString();
         const category = catId ? categoryMap.get(catId) : null;
 
         return {
           id: row._id,
           title: row.title,
-          username: row.username,
           password: decryptedPassword,
           notes: decryptedNotes,
           categoryId: catId || null,
@@ -76,6 +86,7 @@ export async function GET(request: NextRequest) {
           categoryColor: category?.color || null,
           categoryIcon: category?.icon || null,
         url: row.url,
+        customFields: decryptedCustomFields,
         isFavorite: row.isFavorite,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
@@ -97,7 +108,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, username, password, notes, categoryId, url, isFavorite } = body;
+    const { title, password, notes, categoryId, url, isFavorite, customFields } = body;
 
     if (!title || !password) {
       return NextResponse.json({ error: "Title and password are required" }, { status: 400 });
@@ -108,14 +119,21 @@ export async function POST(request: Request) {
     const passwordCipher = encrypt(password);
     const notesCipher = notes ? encrypt(notes) : null;
 
+    const encryptedCustomFields = Array.isArray(customFields)
+      ? customFields.map((field: any) => ({
+          label: field.label,
+          valueCipher: encrypt(field.value)
+        }))
+      : [];
+
     const result = await Password.create({
       title,
-      username: username || "",
       passwordCipher,
       notesCipher,
       categoryId: categoryId || null,
       url: url || "",
       isFavorite: isFavorite || false,
+      customFields: encryptedCustomFields,
     });
 
     return NextResponse.json({ id: result._id }, { status: 201 });

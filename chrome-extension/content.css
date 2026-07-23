@@ -1,0 +1,26 @@
+.vault-autofill-icon {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 9999;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  background-image: url('chrome-extension://__MSG_@@extension_id__/icons/icon-192.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.vault-autofill-icon:hover {
+  opacity: 1;
+}
+
+.vault-autofill-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}

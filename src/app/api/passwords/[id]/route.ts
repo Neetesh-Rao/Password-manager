@@ -40,10 +40,21 @@ export async function GET(_request: Request, context: RouteContext) {
       }
     }
 
+    const decryptedCustomFields = Array.isArray(row.customFields)
+      ? row.customFields.map((field: any) => {
+          let decryptedValue = "";
+          try {
+            decryptedValue = decrypt(field.valueCipher as ICipherField);
+          } catch {
+            decryptedValue = "[decryption error]";
+          }
+          return { id: field._id?.toString() || Math.random().toString(), label: field.label, value: decryptedValue };
+        })
+      : [];
+
     return NextResponse.json({
       id: row._id,
       title: row.title,
-      username: row.username,
       password: decryptedPassword,
       notes: decryptedNotes,
       categoryId: row.categoryId?._id || null,
@@ -51,6 +62,7 @@ export async function GET(_request: Request, context: RouteContext) {
       categoryColor: row.categoryId?.color || null,
       categoryIcon: row.categoryId?.icon || null,
       url: row.url,
+      customFields: decryptedCustomFields,
       isFavorite: row.isFavorite,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -70,19 +82,27 @@ export async function PUT(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const { title, username, password, notes, categoryId, url, isFavorite } = body;
+    const { title, password, notes, categoryId, url, isFavorite, customFields } = body;
 
     await connectDB();
 
     const updates: any = { updatedAt: new Date() };
 
     if (title !== undefined) updates.title = title;
-    if (username !== undefined) updates.username = username;
     if (password !== undefined) updates.passwordCipher = encrypt(password);
     if (notes !== undefined) updates.notesCipher = notes ? encrypt(notes) : null;
     if (categoryId !== undefined) updates.categoryId = categoryId || null;
     if (url !== undefined) updates.url = url;
     if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+    
+    if (customFields !== undefined) {
+      updates.customFields = Array.isArray(customFields)
+        ? customFields.map((field: any) => ({
+            label: field.label,
+            valueCipher: encrypt(field.value)
+          }))
+        : [];
+    }
 
     const result = await Password.findByIdAndUpdate(id, updates, { new: true });
 

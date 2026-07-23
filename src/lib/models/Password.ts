@@ -8,9 +8,12 @@ export interface ICipherField {
 
 export interface IPassword extends Document {
   title: string;
-  username: string;
   passwordCipher: ICipherField;
   notesCipher: ICipherField | null;
+  customFields: {
+    label: string;
+    valueCipher: ICipherField;
+  }[];
   categoryId: mongoose.Types.ObjectId | null;
   url: string;
   isFavorite: boolean;
@@ -26,9 +29,14 @@ const CipherFieldSchema = new Schema({
 
 const PasswordSchema: Schema = new Schema({
   title: { type: String, required: true },
-  username: { type: String, default: "" },
   passwordCipher: { type: CipherFieldSchema, required: true },
   notesCipher: { type: CipherFieldSchema, default: null },
+  customFields: [
+    {
+      label: { type: String, required: true },
+      valueCipher: { type: CipherFieldSchema, required: true }
+    }
+  ],
   categoryId: { type: Schema.Types.ObjectId, ref: "Category", default: null },
   url: { type: String, default: "" },
   isFavorite: { type: Boolean, default: false },
