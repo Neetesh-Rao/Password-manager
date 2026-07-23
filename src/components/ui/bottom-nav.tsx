@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, Grid3X3, Star, Settings, Plus } from "lucide-react";
+import { LayoutDashboard, Layers, Bookmark, SlidersHorizontal, Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 interface BottomNavProps {
@@ -13,11 +13,11 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
   const router = useRouter();
 
   const navItems = [
-    { icon: Home, label: "Home", path: "/" },
-    { icon: Grid3X3, label: "Categories", path: "/categories" },
+    { icon: LayoutDashboard, label: "Home", path: "/" },
+    { icon: Layers, label: "Categories", path: "/categories" },
     { icon: null, label: "Add", path: null }, // center FAB placeholder
-    { icon: Star, label: "Favorites", path: "/favorites" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: Bookmark, label: "Favorites", path: "/favorites" },
+    { icon: SlidersHorizontal, label: "Settings", path: "/settings" },
   ];
 
   return (
@@ -32,7 +32,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
                 onClick={onAddClick}
                 className="w-10 h-10 bg-foreground text-background rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-md"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-5 h-5" strokeWidth={1.5} />
               </button>
             );
           }
@@ -50,7 +50,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-[22px] h-[22px]" strokeWidth={1.5} />
             </button>
           );
         })}

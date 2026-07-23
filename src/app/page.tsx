@@ -125,12 +125,18 @@ function DashboardContent() {
       <div className="px-5 pt-[env(safe-area-inset-top)] pb-2">
         <div className="pt-6 pb-4 flex justify-between items-center">
           <div>
-            <p className="text-sm text-vault-muted mb-1">Welcome back, Abhishek</p>
-            <h1 className="text-2xl font-bold tracking-tight font-heading">Your Vault</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-heading">Vault</h1>
+            <p className="text-xs text-vault-muted mt-0.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-vault-success animate-pulse"></span>
+              Abhishek Raj
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <CommandSearch />
             <ThemeToggle />
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold shadow-sm ml-1">
+              AR
+            </div>
           </div>
         </div>
 

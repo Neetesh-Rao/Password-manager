@@ -34,10 +34,15 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const rows = await Password.find(query)
-      .populate("categoryId")
-      .sort({ updatedAt: -1 })
-      .lean();
+    const [rows, categories] = await Promise.all([
+      Password.find(query).sort({ updatedAt: -1 }).lean(),
+      Category.find().lean()
+    ]);
+
+    const categoryMap = new Map();
+    categories.forEach((cat: any) => {
+      categoryMap.set(cat._id.toString(), cat);
+    });
 
     const entries = rows.map((row: any) => {
       let decryptedPassword = "";
@@ -57,16 +62,19 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return {
-        id: row._id,
-        title: row.title,
-        username: row.username,
-        password: decryptedPassword,
-        notes: decryptedNotes,
-        categoryId: row.categoryId?._id || null,
-        categoryName: row.categoryId?.name || null,
-        categoryColor: row.categoryId?.color || null,
-        categoryIcon: row.categoryId?.icon || null,
+        const catId = row.categoryId?.toString();
+        const category = catId ? categoryMap.get(catId) : null;
+
+        return {
+          id: row._id,
+          title: row.title,
+          username: row.username,
+          password: decryptedPassword,
+          notes: decryptedNotes,
+          categoryId: catId || null,
+          categoryName: category?.name || null,
+          categoryColor: category?.color || null,
+          categoryIcon: category?.icon || null,
         url: row.url,
         isFavorite: row.isFavorite,
         createdAt: row.createdAt,

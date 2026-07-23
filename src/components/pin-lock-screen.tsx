@@ -216,10 +216,16 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
     <div className="fixed inset-0 bg-vault-bg flex flex-col items-center justify-center z-50 px-6">
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-vault-surface border border-vault-border flex items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-vault-surface border border-vault-border flex items-center justify-center shadow-sm">
           <Shield className="w-8 h-8 text-vault-accent" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Vault</h1>
+        <div className="flex flex-col items-center gap-1.5">
+          <h1 className="text-2xl font-bold tracking-tight">Vault</h1>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-vault-surface border border-vault-border/60 text-[9px] text-vault-muted font-semibold tracking-widest uppercase">
+            <span className="w-1 h-1 rounded-full bg-vault-success animate-pulse"></span>
+            Abhishek Raj
+          </div>
+        </div>
       </div>
 
       {/* Title & subtitle */}
@@ -374,14 +380,6 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
           </div>
         </div>
       )}
-
-      {/* VIP Badge */}
-      <div className="absolute bottom-10 left-0 right-0 flex justify-center pointer-events-none">
-        <div className="flex items-center gap-2.5 text-[11px] font-medium text-vault-muted bg-vault-surface/40 backdrop-blur-sm px-4 py-2 rounded-full border border-vault-border/50 shadow-sm">
-          <div className="w-1.5 h-1.5 rounded-full bg-vault-success animate-pulse"></div>
-          Secured for Abhishek Raj
-        </div>
-      </div>
     </div>
   );
 }

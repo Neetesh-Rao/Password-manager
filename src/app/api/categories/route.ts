@@ -14,23 +14,27 @@ export async function GET() {
 
   try {
     await connectDB();
-    const categories = await Category.find().sort({ createdAt: 1 }).lean();
+    const [categories, passwordCounts] = await Promise.all([
+      Category.find().sort({ createdAt: 1 }).lean(),
+      Password.aggregate([
+        { $group: { _id: "$categoryId", count: { $sum: 1 } } }
+      ])
+    ]);
 
-    // Get entry counts for each category
-    const categoriesWithCounts = await Promise.all(
-      categories.map(async (cat) => {
-        const entryCount = await Password.countDocuments({ categoryId: cat._id });
-        return {
-          id: cat._id,
-          name: cat.name,
-          color: cat.color,
-          icon: cat.icon,
-          isDefault: cat.isDefault,
-          createdAt: cat.createdAt,
-          entryCount,
-        };
-      })
-    );
+    const countMap = passwordCounts.reduce((acc: any, curr: any) => {
+      if (curr._id) acc[curr._id.toString()] = curr.count;
+      return acc;
+    }, {});
+
+    const categoriesWithCounts = categories.map((cat: any) => ({
+      id: cat._id,
+      name: cat.name,
+      color: cat.color,
+      icon: cat.icon,
+      isDefault: cat.isDefault,
+      createdAt: cat.createdAt,
+      entryCount: countMap[cat._id.toString()] || 0,
+    }));
 
     return NextResponse.json(categoriesWithCounts);
   } catch (error) {
