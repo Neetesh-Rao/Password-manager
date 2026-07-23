@@ -81,7 +81,7 @@ function injectIcons() {
         autofillCompleted = true;
         btn.remove();
         // Clear the active intent so it doesn't show up again on reloads or direct visits
-        chrome.storage.local.remove(['vaultActiveHostname', 'vaultActiveTime']);
+        chrome.storage.local.remove(['vaultActiveHostname', 'vaultActiveTime', 'vaultActiveEntryId']);
       } else {
         btn.innerHTML = originalText;
       }
@@ -105,8 +105,18 @@ async function triggerAutofill() {
     const passwords = response.data;
     const currentHost = window.location.hostname;
     
-    // Find the best match for this domain
-    const match = passwords.find(p => p.url && currentHost.includes(p.url.replace(/https?:\/\//, '').split('/')[0]));
+    // Retrieve the specific entry ID
+    const { vaultActiveEntryId } = await new Promise(resolve => chrome.storage.local.get(['vaultActiveEntryId'], resolve));
+    
+    let match = null;
+    if (vaultActiveEntryId) {
+      match = passwords.find(p => p.id === vaultActiveEntryId);
+    }
+    
+    // Fallback: Find the best match for this domain
+    if (!match) {
+      match = passwords.find(p => p.url && currentHost.includes(p.url.replace(/https?:\/\//, '').split('/')[0]));
+    }
 
     if (!match) {
       alert("Vault: No saved credentials found for this website.");
@@ -189,9 +199,12 @@ if (DASHBOARD_HOSTS.includes(window.location.hostname)) {
     if (link && link.href && !link.href.includes(window.location.hostname)) {
       try {
         const urlObj = new URL(link.href);
+        const entryId = link.getAttribute('data-vault-entry-id') || null;
         chrome.storage.local.set({ 
           vaultActiveHostname: urlObj.hostname,
-          vaultActiveTime: Date.now()
+          vaultActiveTime: Date.now(),
+          vaultActiveEntryId: entryId,
+          vaultActiveDashboardUrl: window.location.origin
         });
       } catch(err) {}
     }

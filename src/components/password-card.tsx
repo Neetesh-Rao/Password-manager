@@ -122,6 +122,7 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
               href={entry.url.startsWith("http") ? entry.url : `https://${entry.url}`}
               target="_blank"
               rel="noopener noreferrer"
+              data-vault-entry-id={entry.id}
               className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
               title="Open URL"
             >
