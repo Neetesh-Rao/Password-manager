@@ -1,3 +1,4 @@
+const DASHBOARD_HOSTS = ['passwordvert.vercel.app', 'localhost'];
 let autofillCompleted = false;
 
 function injectIcons() {
@@ -79,6 +80,8 @@ function injectIcons() {
       if (success) {
         autofillCompleted = true;
         btn.remove();
+        // Clear the active intent so it doesn't show up again on reloads or direct visits
+        chrome.storage.local.remove(['vaultActiveHostname', 'vaultActiveTime']);
       } else {
         btn.innerHTML = originalText;
       }
@@ -178,10 +181,39 @@ function fillForm(entry) {
   });
 }
 
-// Observe DOM changes to inject icons into React/SPA rendered forms
-const observer = new MutationObserver((mutations) => {
-  injectIcons();
-});
+// Setup Dashboard Clicks vs External Injection
+if (DASHBOARD_HOSTS.includes(window.location.hostname)) {
+  // 1. If on dashboard, listen for clicks on external links
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link && link.href && !link.href.includes(window.location.hostname)) {
+      try {
+        const urlObj = new URL(link.href);
+        chrome.storage.local.set({ 
+          vaultActiveHostname: urlObj.hostname,
+          vaultActiveTime: Date.now()
+        });
+      } catch(err) {}
+    }
+  }, true); // capture phase
+} else {
+  // 2. If on other sites, verify intent before activating
+  chrome.storage.local.get(['vaultActiveHostname', 'vaultActiveTime'], (data) => {
+    if (!data.vaultActiveHostname || !data.vaultActiveTime) return;
 
-observer.observe(document.body, { childList: true, subtree: true });
-injectIcons();
+    const timeElapsed = Date.now() - data.vaultActiveTime;
+    const isRecent = timeElapsed < 2 * 60 * 1000; // 2 minute window
+
+    const currentHost = window.location.hostname;
+    const isMatch = currentHost.includes(data.vaultActiveHostname) || data.vaultActiveHostname.includes(currentHost);
+
+    if (isRecent && isMatch) {
+      // Observe DOM changes to inject icons into React/SPA rendered forms
+      const observer = new MutationObserver((mutations) => {
+        injectIcons();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      injectIcons();
+    }
+  });
+}
