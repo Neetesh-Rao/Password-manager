@@ -56,13 +56,16 @@ export function CommandSearch() {
       .map((entry) => {
         let score = 0;
         const title = entry.title.toLowerCase();
-        const username = (entry.username || "").toLowerCase();
+        let customFieldsStr = "";
+        if (entry.customFields) {
+          customFieldsStr = entry.customFields.map((f) => f.value.toLowerCase()).join(" ");
+        }
         
         if (title === lowerQuery) score += 100;
         else if (title.startsWith(lowerQuery)) score += 50;
         else if (title.includes(lowerQuery)) score += 10;
         
-        if (username.includes(lowerQuery)) score += 5;
+        if (customFieldsStr.includes(lowerQuery)) score += 5;
         
         return { entry, score };
       })
@@ -178,9 +181,9 @@ export function CommandSearch() {
                             <span className="text-sm font-medium text-foreground">
                               {entry.title}
                             </span>
-                            {entry.username && (
+                            {entry.customFields && entry.customFields.length > 0 && (
                               <span className="text-xs text-muted-foreground">
-                                {entry.username}
+                                {entry.customFields[0].value}
                               </span>
                             )}
                           </div>
