@@ -25,7 +25,7 @@ export function ConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+    <div className="fixed inset-0 max-w-3xl mx-auto z-[60] flex items-center justify-center p-6 sm:border-x sm:border-vault-border/30">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative bg-vault-surface border border-vault-border rounded-3xl p-6 max-w-sm w-full">
         <div className="flex items-center gap-3 mb-3">

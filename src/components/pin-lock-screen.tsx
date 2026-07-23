@@ -213,7 +213,7 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
     : "Enter your PIN to unlock";
 
   return (
-    <div className="fixed inset-0 bg-vault-bg flex flex-col items-center justify-center z-50 px-6">
+    <div className="fixed inset-0 max-w-3xl mx-auto bg-vault-bg flex flex-col items-center justify-center z-50 px-6 sm:border-x sm:border-vault-border/30">
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center gap-3">
         <div className="w-16 h-16 rounded-2xl bg-vault-surface border border-vault-border flex items-center justify-center shadow-sm">
@@ -299,9 +299,8 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
         </button>
       )}
 
-      {/* Recovery modal */}
       {showRecoveryModal && recoveryCode && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-6">
+        <div className="fixed inset-0 max-w-3xl mx-auto bg-black/70 z-[60] flex items-center justify-center p-6">
           <div className="bg-vault-surface border border-vault-border rounded-3xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 mb-4">
               <KeyRound className="w-6 h-6 text-vault-gold" />
@@ -326,9 +325,8 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
         </div>
       )}
 
-      {/* Recovery input modal (forgot PIN flow) */}
       {showRecoveryModal && !recoveryCode && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-6">
+        <div className="fixed inset-0 max-w-3xl mx-auto bg-black/70 z-[60] flex items-center justify-center p-6">
           <div className="bg-vault-surface border border-vault-border rounded-3xl p-6 max-w-sm w-full">
             <h3 className="text-lg font-semibold mb-4">
               {recoveryStep === "code" ? "Enter Recovery Code" : "Set New PIN"}

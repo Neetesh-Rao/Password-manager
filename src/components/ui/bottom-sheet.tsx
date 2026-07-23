@@ -24,7 +24,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-50 max-w-3xl mx-auto sm:border-x sm:border-vault-border/30">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 transition-opacity"

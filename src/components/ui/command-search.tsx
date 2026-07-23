@@ -117,14 +117,14 @@ export function CommandSearch() {
       {/* Modal */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-32 px-4">
+          <div className="fixed inset-0 max-w-3xl mx-auto z-50 flex items-start justify-center pt-20 sm:pt-32 px-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-background/60 backdrop-blur-md"
+              className="absolute inset-0 bg-background/60 backdrop-blur-md sm:border-x sm:border-vault-border/30"
             />
 
             {/* Command Palette */}

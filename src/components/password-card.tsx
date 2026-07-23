@@ -117,6 +117,17 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
           >
             {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
           </button>
+          {entry.url && (
+            <a
+              href={entry.url.startsWith("http") ? entry.url : `https://${entry.url}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+              title="Open URL"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
           <button
             onClick={() => onToggleFavorite(entry)}
             className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors"
@@ -140,17 +151,6 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
                 >
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
-                {entry.url && (
-                  <a
-                    href={entry.url.startsWith("http") ? entry.url : `https://${entry.url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted w-full text-left transition-colors"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> Open URL
-                  </a>
-                )}
                 <button
                   onClick={() => { setShowMenu(false); onDelete(entry); }}
                   className="flex items-center gap-2.5 px-3 py-2 text-xs text-red-500 hover:bg-red-500/10 w-full text-left transition-colors"

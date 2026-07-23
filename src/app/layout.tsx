@@ -47,9 +47,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className={`bg-background text-foreground ${inter.variable} ${instrumentSerif.variable} font-sans antialiased`}>
+      <body className={`bg-background text-foreground ${inter.variable} ${instrumentSerif.variable} font-sans antialiased bg-grid-pattern`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AppProvider>{children}</AppProvider>
+          <div className="mx-auto max-w-3xl w-full min-h-screen relative bg-background sm:border-x sm:border-vault-border/30 sm:shadow-2xl">
+            <AppProvider>{children}</AppProvider>
+          </div>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
