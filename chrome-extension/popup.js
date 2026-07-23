@@ -10,4 +10,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       statusMsg.style.color = "#22c55e";
     }
   });
+
+  chrome.storage.local.get(['vaultActiveDashboardUrl'], (data) => {
+    const baseUrl = data.vaultActiveDashboardUrl || "https://passwordvert.vercel.app";
+    document.getElementById("dashboard-link").href = baseUrl;
+  });
 });

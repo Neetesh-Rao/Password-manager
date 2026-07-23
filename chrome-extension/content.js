@@ -196,6 +196,9 @@ function fillForm(entry) {
 
 // Setup Dashboard Clicks vs External Injection
 if (DASHBOARD_HOSTS.includes(window.location.hostname)) {
+  // Always update the active dashboard URL when visiting the dashboard
+  chrome.storage.local.set({ vaultActiveDashboardUrl: window.location.origin });
+
   // 1. If on dashboard, listen for clicks on external links
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
