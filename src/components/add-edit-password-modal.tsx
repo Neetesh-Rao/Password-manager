@@ -176,7 +176,7 @@ export function AddEditPasswordModal({
                 className="w-1/3 px-3 py-3 bg-vault-bg border border-dashed border-vault-border rounded-xl text-vault-text text-sm focus:outline-none focus:border-vault-accent"
               />
               <input
-                type="text"
+                type={showPassword ? "text" : "password"}
                 value={field.value}
                 onChange={(e) => {
                   const newFields = [...customFields];

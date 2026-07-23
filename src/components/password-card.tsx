@@ -110,6 +110,13 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
         </div>
 
         <div className="flex items-center gap-0.5 flex-shrink-0">
+          <button 
+            onClick={() => setShowPassword(!showPassword)}
+            className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors"
+            title={showPassword ? "Hide credentials" : "Show credentials"}
+          >
+            {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+          </button>
           <button
             onClick={() => onToggleFavorite(entry)}
             className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors"
@@ -157,21 +164,14 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
       </div>
 
       {/* Credentials Section */}
-      <div className="bg-muted/10 border border-border/40 rounded-xl flex flex-col">
+      <div className="flex flex-col mt-1">
         {/* Password row */}
-        <div className={`flex items-center justify-between px-2.5 py-1.5 ${entry.customFields && entry.customFields.length > 0 ? "border-b border-border/40" : ""}`}>
+        <div className={`flex items-center justify-between py-1.5 ${entry.customFields && entry.customFields.length > 0 ? "border-b border-dashed border-vault-border/50" : ""}`}>
           <span className={`text-xs text-foreground truncate mr-2 ${!showPassword ? 'font-mono tracking-[0.2em] mt-0.5' : 'font-medium'}`}>
             {showPassword ? entry.password : "••••••••"}
           </span>
           
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button 
-              onClick={() => setShowPassword(!showPassword)}
-              className="p-1 hover:bg-muted/50 rounded-md text-muted-foreground transition-all active:scale-95"
-            >
-              {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-            <div className="w-px h-3 bg-border/80 mx-0.5" />
             <button 
               onClick={() => copyToClipboard(entry.password, "Password")}
               className="p-1 hover:bg-muted/50 rounded-md text-muted-foreground transition-colors active:scale-95"
@@ -187,10 +187,12 @@ export function PasswordCard({ entry, onEdit, onDelete, onToggleFavorite }: Pass
 
         {/* Custom Fields rows */}
         {entry.customFields?.map((field, idx) => (
-          <div key={field.id} className={`flex items-center justify-between px-2.5 py-1.5 ${idx !== entry.customFields!.length - 1 ? "border-b border-border/40" : ""}`}>
+          <div key={field.id} className={`flex items-center justify-between py-1.5 ${idx !== entry.customFields!.length - 1 ? "border-b border-dashed border-vault-border/50" : ""}`}>
             <div className="flex flex-col min-w-0 mr-2">
               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{field.label}</span>
-              <span className="text-xs text-foreground truncate">{field.value}</span>
+              <span className={`text-xs text-foreground truncate ${!showPassword ? 'font-mono tracking-[0.2em] mt-0.5' : ''}`}>
+                {showPassword ? field.value : "••••••••"}
+              </span>
             </div>
             <button 
               onClick={() => copyToClipboard(field.value, field.label)}
