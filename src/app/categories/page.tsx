@@ -226,7 +226,7 @@ function CategoriesContent() {
             <button
               onClick={handleAddCategory}
               disabled={savingCat}
-              className="flex-1 py-3.5 bg-vault-accent text-white font-semibold rounded-full hover:opacity-90 disabled:opacity-50"
+              className="flex-1 py-3.5 bg-vault-accent text-background font-semibold rounded-full hover:opacity-90 disabled:opacity-50"
             >
               {savingCat ? "Creating..." : "Create"}
             </button>

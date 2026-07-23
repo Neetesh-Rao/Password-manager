@@ -29,7 +29,7 @@
   --color-vault-border: var(--border);
   --color-vault-text: var(--foreground);
   --color-vault-muted: #8A8A8E;
-  --color-vault-accent: #4C8DFF;
+  --color-vault-accent: var(--foreground);
   --color-vault-danger: #E45858;
   --color-vault-success: #4CD787;
   --color-vault-gold: #D4AF6A;

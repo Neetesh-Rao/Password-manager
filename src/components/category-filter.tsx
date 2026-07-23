@@ -22,7 +22,7 @@ export function CategoryFilter({ categories, activeCategory, onChange }: Categor
         onClick={() => onChange("all")}
         className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
           activeCategory === "all"
-            ? "bg-vault-accent text-white"
+            ? "bg-vault-accent text-background"
             : "bg-vault-surface border border-vault-border text-vault-muted hover:text-vault-text"
         }`}
       >

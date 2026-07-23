@@ -312,7 +312,7 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
             </div>
             <button
               onClick={acknowledgeRecovery}
-              className="w-full py-3.5 bg-vault-accent text-white font-semibold rounded-full hover:opacity-90 transition-opacity"
+              className="w-full py-3.5 bg-vault-accent text-background font-semibold rounded-full hover:opacity-90 transition-opacity"
             >
               I&apos;ve saved this code
             </button>
@@ -366,7 +366,7 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
               <button
                 onClick={submitRecovery}
                 disabled={submitting}
-                className="flex-1 py-3 bg-vault-accent text-white font-semibold rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex-1 py-3 bg-vault-accent text-background font-semibold rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {submitting ? "..." : recoveryStep === "code" ? "Next" : "Set PIN"}
               </button>

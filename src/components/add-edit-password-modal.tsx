@@ -210,7 +210,7 @@ export function AddEditPasswordModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3.5 bg-vault-accent text-white font-semibold rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex-1 py-3.5 bg-vault-accent text-background font-semibold rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {saving ? "Saving..." : editEntry ? "Update" : "Save"}
           </button>
