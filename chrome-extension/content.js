@@ -167,34 +167,33 @@ function fillForm(entry) {
       if (lbl) labelText = lbl.innerText.toLowerCase();
     }
 
-    const isLikelyUsernameInput = 
-      type === 'email' || 
-      (type === 'text' && (
-        name.includes('user') || name.includes('email') || name.includes('login') || name.includes('id') ||
-        id.includes('user') || id.includes('email') || id.includes('login') || id.includes('id') ||
-        placeholder.includes('user') || placeholder.includes('email') || placeholder.includes('login')
-      ));
-
     let matchedCustom = false;
     
     // 1. PRIORITY: Fill Dynamic Custom Fields first
     if (entry.customFields && entry.customFields.length > 0) {
       for (const field of entry.customFields) {
-        const label = (field.label || "").trim().toLowerCase();
-        if (!label) continue; // Prevent empty labels from matching everything!
-
-        const isFieldLikelyUsername = label.includes('user') || label.includes('email') || label.includes('login') || label.includes('id');
+        if (!field.label || !field.label.trim()) continue; // Prevent empty labels
         
-        // Match label against input name, id, placeholder, or actual HTML label text
-        if (
-          (name && name.includes(label)) || 
-          (id && id.includes(label)) || 
-          (placeholder && placeholder.includes(label)) || 
-          (labelText && labelText.includes(label)) ||
-          (label.length > 2 && name && name.includes(label)) ||
-          (label.length > 2 && labelText && labelText.includes(label)) ||
-          (isLikelyUsernameInput && isFieldLikelyUsername) // Smart match for username/emails!
-        ) {
+        const getWords = (str) => (str || "").toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 2);
+        const labelWords = getWords(field.label);
+        
+        const inputWords = [
+          ...getWords(name), 
+          ...getWords(id), 
+          ...getWords(placeholder), 
+          ...getWords(labelText)
+        ];
+        if (type === 'email') inputWords.push('email');
+
+        let isMatch = false;
+        for (const lw of labelWords) {
+          if (inputWords.some(iw => iw === lw || (lw.length > 3 && iw.includes(lw)) || (iw.length > 3 && lw.includes(iw)))) {
+            isMatch = true;
+            break;
+          }
+        }
+        
+        if (isMatch) {
           setInputValue(input, field.value);
           matchedCustom = true;
           break;
