@@ -11,6 +11,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Return true to indicate we will send a response asynchronously
     return true;
   }
+
+  if (request.type === "OPEN_TAB_WITH_INTENT") {
+    chrome.tabs.create({ url: request.url }, (tab) => {
+      if (tab && tab.id) {
+        try {
+          const urlObj = new URL(request.url);
+          const intentKey = `tabIntent_${tab.id}`;
+          chrome.storage.local.set({
+            [intentKey]: {
+              entryId: request.entryId,
+              hostname: urlObj.hostname,
+              time: Date.now()
+            },
+            vaultActiveDashboardUrl: request.dashboardUrl
+          });
+        } catch (err) {
+          console.error("Invalid URL passed to OPEN_TAB_WITH_INTENT");
+        }
+      }
+    });
+  }
+
+  if (request.type === "GET_TAB_INTENT") {
+    if (sender && sender.tab && sender.tab.id) {
+      const intentKey = `tabIntent_${sender.tab.id}`;
+      chrome.storage.local.get([intentKey], (data) => {
+        sendResponse(data[intentKey] || null);
+      });
+      return true;
+    } else {
+      sendResponse(null);
+    }
+  }
+
+  if (request.type === "CLEAR_TAB_INTENT") {
+    if (sender && sender.tab && sender.tab.id) {
+      chrome.storage.local.remove([`tabIntent_${sender.tab.id}`]);
+    }
+  }
+});
+
+// Clean up intents when tabs are closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  chrome.storage.local.remove([`tabIntent_${tabId}`]);
 });
 
 async function fetchPasswords(baseUrl) {

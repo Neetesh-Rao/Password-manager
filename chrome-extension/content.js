@@ -81,7 +81,7 @@ function injectIcons() {
         autofillCompleted = true;
         btn.remove();
         // Clear the active intent so it doesn't show up again on reloads or direct visits
-        chrome.storage.local.remove(['vaultActiveHostname', 'vaultActiveTime', 'vaultActiveEntryId']);
+        chrome.runtime.sendMessage({ type: "CLEAR_TAB_INTENT" });
       } else {
         btn.innerHTML = originalText;
       }
@@ -105,9 +105,10 @@ async function triggerAutofill() {
     const passwords = response.data;
     const currentHost = window.location.hostname;
     
-    // Retrieve the specific entry ID
-    const { vaultActiveEntryId } = await new Promise(resolve => chrome.storage.local.get(['vaultActiveEntryId'], resolve));
-    console.log("Vault Autofill: Active Entry ID from storage is", vaultActiveEntryId);
+    // Retrieve the specific entry ID from the tab intent
+    const intent = await new Promise(resolve => chrome.runtime.sendMessage({ type: "GET_TAB_INTENT" }, resolve));
+    const vaultActiveEntryId = intent ? intent.entryId : null;
+    console.log("Vault Autofill: Active Entry ID from intent is", vaultActiveEntryId);
     
     let match = null;
     if (vaultActiveEntryId) {
@@ -201,31 +202,36 @@ if (DASHBOARD_HOSTS.includes(window.location.hostname)) {
 
   // 1. If on dashboard, listen for clicks on external links
   document.addEventListener('click', (e) => {
+    // Only intercept plain left clicks
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    
     const link = e.target.closest('a');
     if (link && link.href && !link.href.includes(window.location.hostname)) {
-      try {
-        const urlObj = new URL(link.href);
-        const entryId = link.getAttribute('data-vault-entry-id') || null;
-        console.log("Vault Dashboard: Link clicked! Saving Entry ID:", entryId, "for Host:", urlObj.hostname);
-        chrome.storage.local.set({ 
-          vaultActiveHostname: urlObj.hostname,
-          vaultActiveTime: Date.now(),
-          vaultActiveEntryId: entryId,
-          vaultActiveDashboardUrl: window.location.origin
+      const entryId = link.getAttribute('data-vault-entry-id');
+      if (entryId) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log("Vault Dashboard: Link clicked! Opening tab with intent for Entry ID:", entryId);
+        chrome.runtime.sendMessage({ 
+          type: "OPEN_TAB_WITH_INTENT", 
+          url: link.href, 
+          entryId: entryId,
+          dashboardUrl: window.location.origin
         });
-      } catch(err) {}
+      }
     }
   }, true); // capture phase
 } else {
   // 2. If on other sites, verify intent before activating
-  chrome.storage.local.get(['vaultActiveHostname', 'vaultActiveTime'], (data) => {
-    if (!data.vaultActiveHostname || !data.vaultActiveTime) return;
+  chrome.runtime.sendMessage({ type: "GET_TAB_INTENT" }, (intent) => {
+    if (!intent || !intent.hostname || !intent.time) return;
 
-    const timeElapsed = Date.now() - data.vaultActiveTime;
-    const isRecent = timeElapsed < 2 * 60 * 1000; // 2 minute window
+    const timeElapsed = Date.now() - intent.time;
+    const isRecent = timeElapsed < 5 * 60 * 1000; // 5 minute window for tab intent
 
     const currentHost = window.location.hostname;
-    const isMatch = currentHost.includes(data.vaultActiveHostname) || data.vaultActiveHostname.includes(currentHost);
+    const isMatch = currentHost.includes(intent.hostname) || intent.hostname.includes(currentHost);
 
     if (isRecent && isMatch) {
       // Observe DOM changes to inject icons into React/SPA rendered forms
