@@ -155,6 +155,9 @@ function fillForm(entry) {
     const placeholder = (input.placeholder || "").toLowerCase();
     const type = input.type;
 
+    // Skip hidden or irrelevant inputs to avoid filling search bars blindly if not specifically targeted
+    if (type === "hidden" || type === "submit" || type === "button" || type === "checkbox" || type === "radio") return;
+
     // Extract the visible label text associated with this input
     let labelText = "";
     if (input.labels && input.labels.length > 0) {
@@ -164,19 +167,33 @@ function fillForm(entry) {
       if (lbl) labelText = lbl.innerText.toLowerCase();
     }
 
+    const isLikelyUsernameInput = 
+      type === 'email' || 
+      (type === 'text' && (
+        name.includes('user') || name.includes('email') || name.includes('login') || name.includes('id') ||
+        id.includes('user') || id.includes('email') || id.includes('login') || id.includes('id') ||
+        placeholder.includes('user') || placeholder.includes('email') || placeholder.includes('login')
+      ));
+
     let matchedCustom = false;
+    
     // 1. PRIORITY: Fill Dynamic Custom Fields first
     if (entry.customFields && entry.customFields.length > 0) {
       for (const field of entry.customFields) {
-        const label = field.label.toLowerCase();
+        const label = (field.label || "").trim().toLowerCase();
+        if (!label) continue; // Prevent empty labels from matching everything!
+
+        const isFieldLikelyUsername = label.includes('user') || label.includes('email') || label.includes('login') || label.includes('id');
+        
         // Match label against input name, id, placeholder, or actual HTML label text
         if (
           (name && name.includes(label)) || 
           (id && id.includes(label)) || 
           (placeholder && placeholder.includes(label)) || 
           (labelText && labelText.includes(label)) ||
-          (label.includes(name) && name.length > 2) ||
-          (labelText && label.includes(labelText) && labelText.length > 2)
+          (label.length > 2 && name && name.includes(label)) ||
+          (label.length > 2 && labelText && labelText.includes(label)) ||
+          (isLikelyUsernameInput && isFieldLikelyUsername) // Smart match for username/emails!
         ) {
           setInputValue(input, field.value);
           matchedCustom = true;
