@@ -2,21 +2,27 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Category from "@/lib/models/Category";
 import Password from "@/lib/models/Password";
-import { verifySession } from "@/lib/session";
+import { getSession } from "@/lib/session";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     await connectDB();
+    const userObjectId = new mongoose.Types.ObjectId(session.userId);
+
     const [categories, passwordCounts] = await Promise.all([
-      Category.find().sort({ createdAt: 1 }).lean(),
+      Category.find({
+        $or: [{ isDefault: true }, { userId: session.userId }],
+      }).sort({ createdAt: 1 }).lean(),
       Password.aggregate([
+        { $match: { userId: userObjectId } },
         { $group: { _id: "$categoryId", count: { $sum: 1 } } }
       ])
     ]);
@@ -27,7 +33,7 @@ export async function GET() {
     }, {});
 
     const categoriesWithCounts = categories.map((cat: any) => ({
-      id: cat._id,
+      id: cat._id.toString(),
       name: cat.name,
       color: cat.color,
       icon: cat.icon,
@@ -44,8 +50,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -58,6 +64,7 @@ export async function POST(request: Request) {
 
     await connectDB();
     const result = await Category.create({
+      userId: session.userId,
       name,
       color: color || "#4C8DFF",
       icon: icon || "folder",
@@ -65,7 +72,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      id: result._id,
+      id: result._id.toString(),
       name: result.name,
       color: result.color,
       icon: result.icon,

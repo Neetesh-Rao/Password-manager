@@ -1,4 +1,15 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Fix Windows / ISP DNS resolution issues for MongoDB Atlas
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder("ipv4first");
+  }
+} catch (err) {
+  console.warn("Could not set DNS servers:", err);
+}
 
 const MONGODB_URI = process.env.MONGODB_URI;
 

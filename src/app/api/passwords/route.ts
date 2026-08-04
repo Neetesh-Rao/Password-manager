@@ -2,15 +2,15 @@ import { NextResponse, NextRequest } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Password from "@/lib/models/Password";
 import Category from "@/lib/models/Category";
-import { verifySession } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import { encrypt, decrypt } from "@/lib/encryption";
 import type { ICipherField } from "@/lib/models/Password";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -21,21 +21,22 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    let query: any = {};
+    // Query passwords belonging ONLY to the logged-in user
+    let query: any = { userId: session.userId };
 
     if (categoryId && categoryId !== "all") {
       query.categoryId = categoryId;
     }
 
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } }
-      ];
+      query.title = { $regex: search, $options: "i" };
     }
 
     const [rows, categories] = await Promise.all([
       Password.find(query).sort({ updatedAt: -1 }).lean(),
-      Category.find().lean()
+      Category.find({
+        $or: [{ isDefault: true }, { userId: session.userId }],
+      }).lean(),
     ]);
 
     const categoryMap = new Map();
@@ -48,14 +49,14 @@ export async function GET(request: NextRequest) {
       let decryptedNotes = "";
 
       try {
-        decryptedPassword = decrypt(row.passwordCipher as ICipherField);
+        decryptedPassword = decrypt(row.passwordCipher as ICipherField, session.userId);
       } catch {
         decryptedPassword = "[decryption error]";
       }
 
       if (row.notesCipher) {
         try {
-          decryptedNotes = decrypt(row.notesCipher as ICipherField);
+          decryptedNotes = decrypt(row.notesCipher as ICipherField, session.userId);
         } catch {
           decryptedNotes = "[decryption error]";
         }
@@ -65,26 +66,30 @@ export async function GET(request: NextRequest) {
         ? row.customFields.map((field: any) => {
             let decryptedValue = "";
             try {
-              decryptedValue = decrypt(field.valueCipher as ICipherField);
+              decryptedValue = decrypt(field.valueCipher as ICipherField, session.userId);
             } catch {
               decryptedValue = "[decryption error]";
             }
-            return { id: field._id?.toString() || Math.random().toString(), label: field.label, value: decryptedValue };
+            return {
+              id: field._id?.toString() || Math.random().toString(),
+              label: field.label,
+              value: decryptedValue,
+            };
           })
         : [];
 
-        const catId = row.categoryId?.toString();
-        const category = catId ? categoryMap.get(catId) : null;
+      const catId = row.categoryId?.toString();
+      const category = catId ? categoryMap.get(catId) : null;
 
-        return {
-          id: row._id.toString(),
-          title: row.title,
-          password: decryptedPassword,
-          notes: decryptedNotes,
-          categoryId: catId || null,
-          categoryName: category?.name || null,
-          categoryColor: category?.color || null,
-          categoryIcon: category?.icon || null,
+      return {
+        id: row._id.toString(),
+        title: row.title,
+        password: decryptedPassword,
+        notes: decryptedNotes,
+        categoryId: catId || null,
+        categoryName: category?.name || null,
+        categoryColor: category?.color || null,
+        categoryIcon: category?.icon || null,
         url: row.url,
         customFields: decryptedCustomFields,
         isFavorite: row.isFavorite,
@@ -101,8 +106,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -116,17 +121,18 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    const passwordCipher = encrypt(password);
-    const notesCipher = notes ? encrypt(notes) : null;
+    const passwordCipher = encrypt(password, session.userId);
+    const notesCipher = notes ? encrypt(notes, session.userId) : null;
 
     const encryptedCustomFields = Array.isArray(customFields)
       ? customFields.map((field: any) => ({
           label: field.label,
-          valueCipher: encrypt(field.value)
+          valueCipher: encrypt(field.value, session.userId),
         }))
       : [];
 
     const result = await Password.create({
+      userId: session.userId,
       title,
       passwordCipher,
       notesCipher,

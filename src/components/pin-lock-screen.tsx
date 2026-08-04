@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { Delete, Shield, KeyRound } from "lucide-react";
+import React, { useState, useCallback, useEffect } from "react";
+import { Delete, Shield, KeyRound, UserPlus, LogIn, LogOut } from "lucide-react";
 import { useApp } from "@/components/providers/app-provider";
 
 const PIN_LENGTH = 4;
@@ -11,10 +11,22 @@ interface PinLockScreenProps {
 }
 
 export function PinLockScreen({ mode }: PinLockScreenProps) {
-  const { unlock, setSetup } = useApp();
+  const { unlock, setSetup, user, logout } = useApp();
+
+  const [activeTab, setActiveTab] = useState<"login" | "register">(
+    mode === "setup" && !user ? "register" : "login"
+  );
+
+  // Manual login fields (when no active user session)
+  const [loginEmail, setLoginEmail] = useState("");
+
+  // Registration fields
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [step, setStep] = useState<"enter" | "confirm" | "recovery">(mode === "setup" ? "enter" : "enter");
+  const [step, setStep] = useState<"enter" | "confirm">("enter");
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState("");
@@ -26,7 +38,7 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
   const [submitting, setSubmitting] = useState(false);
 
   // Lockout countdown
-  React.useEffect(() => {
+  useEffect(() => {
     if (lockoutSeconds <= 0) return;
     const t = setInterval(() => {
       setLockoutSeconds((s) => {
@@ -45,87 +57,66 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
     setTimeout(() => setShaking(false), 500);
   }, []);
 
-  const handleDigit = useCallback(
-    (digit: string) => {
-      if (lockoutSeconds > 0 || submitting) return;
+  const submitRegister = async (finalPin: string) => {
+    if (!regName.trim() || !regEmail.trim()) {
+      setError("Please fill in Name and Email first.");
+      triggerShake();
+      setPin("");
+      setStep("enter");
+      return;
+    }
 
-      if (mode === "setup") {
-        if (step === "enter") {
-          const next = pin + digit;
-          setPin(next);
-          setError("");
-          if (next.length === PIN_LENGTH) {
-            setStep("confirm");
-            setPin("");
-            setConfirmPin(next);
-          }
-        } else if (step === "confirm") {
-          const next = pin + digit;
-          setPin(next);
-          setError("");
-          if (next.length === PIN_LENGTH) {
-            if (next === confirmPin) {
-              submitSetup(next);
-            } else {
-              triggerShake();
-              setError("PINs don't match. Try again.");
-              setPin("");
-              setStep("enter");
-              setConfirmPin("");
-            }
-          }
-        }
-      } else {
-        // unlock mode
-        const next = pin + digit;
-        setPin(next);
-        setError("");
-        if (next.length === PIN_LENGTH) {
-          submitVerify(next);
-        }
-      }
-    },
-    [pin, confirmPin, step, mode, lockoutSeconds, submitting]
-  );
-
-  const handleBackspace = useCallback(() => {
-    setPin((p) => p.slice(0, -1));
-  }, []);
-
-  const submitSetup = async (finalPin: string) => {
     setSubmitting(true);
     try {
-      const res = await fetch("/api/auth/setup-pin", {
+      const endpoint = "/api/auth/register";
+      const payload = { pin: finalPin, name: regName.trim(), email: regEmail.trim() };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: finalPin }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok) {
-        setRecoveryCode(data.recoveryCode);
-        setShowRecoveryModal(true);
+        setRecoveryCode(data.recoveryCode || "");
+        if (data.recoveryCode) {
+          setShowRecoveryModal(true);
+        } else {
+          unlock();
+        }
         setSetup(true);
       } else {
         triggerShake();
-        setError(data.error || "Setup failed");
+        setError(data.error || "Registration failed");
         setPin("");
+        setStep("enter");
       }
     } catch {
       triggerShake();
       setError("Network error");
       setPin("");
+      setStep("enter");
     } finally {
       setSubmitting(false);
     }
   };
 
   const submitVerify = async (finalPin: string) => {
+    const targetEmail = user ? user.email : loginEmail;
+
+    if (!user && !targetEmail.trim()) {
+      setError("Please enter your email address.");
+      triggerShake();
+      setPin("");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/auth/verify-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: finalPin }),
+        body: JSON.stringify({ email: targetEmail.trim(), pin: finalPin }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -148,6 +139,53 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
       setSubmitting(false);
     }
   };
+
+  const handleDigit = useCallback(
+    (digit: string) => {
+      if (lockoutSeconds > 0 || submitting) return;
+
+      if (!user && activeTab === "register") {
+        if (step === "enter") {
+          const next = pin + digit;
+          setPin(next);
+          setError("");
+          if (next.length === PIN_LENGTH) {
+            setStep("confirm");
+            setPin("");
+            setConfirmPin(next);
+          }
+        } else if (step === "confirm") {
+          const next = pin + digit;
+          setPin(next);
+          setError("");
+          if (next.length === PIN_LENGTH) {
+            if (next === confirmPin) {
+              submitRegister(next);
+            } else {
+              triggerShake();
+              setError("PINs don't match. Try again.");
+              setPin("");
+              setStep("enter");
+              setConfirmPin("");
+            }
+          }
+        }
+      } else {
+        // Unlock / Login mode
+        const next = pin + digit;
+        setPin(next);
+        setError("");
+        if (next.length === PIN_LENGTH) {
+          submitVerify(next);
+        }
+      }
+    },
+    [pin, confirmPin, step, activeTab, lockoutSeconds, submitting, user, loginEmail, regName, regEmail]
+  );
+
+  const handleBackspace = useCallback(() => {
+    setPin((p) => p.slice(0, -1));
+  }, []);
 
   const submitRecovery = async () => {
     if (recoveryStep === "code") {
@@ -175,7 +213,6 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
       const data = await res.json();
       if (res.ok) {
         setShowRecoveryModal(false);
-        setRecoveryCode(data.newRecoveryCode || "");
         if (data.newRecoveryCode) {
           setRecoveryCode(data.newRecoveryCode);
           setShowRecoveryModal(true);
@@ -200,44 +237,122 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
     unlock();
   };
 
-  const title = mode === "setup"
-    ? step === "confirm" ? "Confirm your PIN" : "Create a PIN"
-    : lockoutSeconds > 0
-    ? "Locked"
-    : "Enter your PIN";
-
-  const subtitle = mode === "setup"
-    ? step === "confirm" ? "Re-enter the same PIN" : "Choose a 4-digit PIN to secure your vault"
-    : lockoutSeconds > 0
-    ? `Try again in ${lockoutSeconds}s`
-    : "Enter your PIN to unlock";
-
   return (
-    <div className="fixed inset-0 max-w-3xl mx-auto bg-vault-bg flex flex-col items-center justify-center z-50 px-6 sm:border-x sm:border-vault-border/30">
-      {/* Logo */}
-      <div className="mb-8 flex flex-col items-center gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-vault-surface border border-vault-border flex items-center justify-center shadow-sm">
-          <Shield className="w-8 h-8 text-vault-accent" />
+    <div className="fixed inset-0 max-w-3xl mx-auto bg-vault-bg flex flex-col items-center justify-center z-50 px-6 sm:border-x sm:border-vault-border/30 overflow-y-auto py-8">
+      {/* Logo Header */}
+      <div className="mb-4 flex flex-col items-center gap-2">
+        <div className="w-14 h-14 rounded-2xl bg-vault-surface border border-vault-border flex items-center justify-center shadow-sm">
+          <Shield className="w-7 h-7 text-vault-accent" />
         </div>
-        <div className="flex flex-col items-center gap-1.5">
-          <h1 className="text-2xl font-bold tracking-tight">Vault</h1>
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-vault-surface border border-vault-border/60 text-[9px] text-vault-muted font-semibold tracking-widest uppercase">
-            <span className="w-1 h-1 rounded-full bg-vault-success animate-pulse"></span>
-            Abhishek Raj
-          </div>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight font-heading">Vault</h1>
       </div>
 
-      {/* Title & subtitle */}
-      <h2 className="text-lg font-semibold mb-1">{title}</h2>
-      <p className="text-sm text-vault-muted mb-8">{subtitle}</p>
+      {/* When no user session exists: Show Login / Register tabs */}
+      {!user ? (
+        <>
+          <div className="flex gap-2 p-1 bg-vault-surface border border-vault-border rounded-xl mb-5 max-w-xs w-full">
+            <button
+              onClick={() => {
+                setActiveTab("login");
+                setPin("");
+                setError("");
+                setStep("enter");
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                activeTab === "login"
+                  ? "bg-vault-accent text-background shadow-sm"
+                  : "text-vault-muted hover:text-vault-text"
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Login
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("register");
+                setPin("");
+                setError("");
+                setStep("enter");
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                activeTab === "register"
+                  ? "bg-vault-accent text-background shadow-sm"
+                  : "text-vault-muted hover:text-vault-text"
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              New Account
+            </button>
+          </div>
+
+          {activeTab === "login" && (
+            <div className="mb-4 max-w-xs w-full">
+              <label className="text-[11px] font-medium text-vault-muted mb-1 block">Email Address</label>
+              <input
+                type="email"
+                placeholder="enter.your.email@example.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-vault-border rounded-xl text-sm focus:outline-none focus:border-vault-accent text-vault-text"
+              />
+            </div>
+          )}
+
+          {activeTab === "register" && (
+            <div className="space-y-3 mb-4 max-w-xs w-full">
+              <div>
+                <label className="text-[11px] font-medium text-vault-muted mb-1 block">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rahul Sharma"
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-vault-surface border border-vault-border rounded-xl text-sm focus:outline-none focus:border-vault-accent text-vault-text"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-vault-muted mb-1 block">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="e.g. rahul@gmail.com"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-vault-surface border border-vault-border rounded-xl text-sm focus:outline-none focus:border-vault-accent text-vault-text"
+                />
+              </div>
+            </div>
+          )}
+
+          <h2 className="text-base font-semibold mb-0.5">
+            {activeTab === "register"
+              ? step === "confirm" ? "Confirm your PIN" : "Create a 4-Digit PIN"
+              : lockoutSeconds > 0
+              ? "Locked"
+              : "Enter PIN"}
+          </h2>
+          <p className="text-xs text-vault-muted mb-4 text-center max-w-xs">
+            {activeTab === "register"
+              ? step === "confirm" ? "Re-enter the same PIN to confirm" : "Set master PIN for your account"
+              : lockoutSeconds > 0
+              ? `Try again in ${lockoutSeconds}s`
+              : "Enter your PIN to log in"}
+          </p>
+        </>
+      ) : (
+        /* Remembered Active User Lock Screen */
+        <div className="flex flex-col items-center mb-4 text-center">
+          <h2 className="text-lg font-bold">Locked</h2>
+          <p className="text-sm font-medium text-vault-text mt-1">{user.name}</p>
+          <p className="text-xs text-vault-muted mb-4">{user.email}</p>
+        </div>
+      )}
 
       {/* PIN dots */}
-      <div className={`flex gap-4 mb-3 ${shaking ? "animate-shake" : ""}`}>
+      <div className={`flex gap-3 mb-3 ${shaking ? "animate-shake" : ""}`}>
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <div
             key={i}
-            className={`w-4 h-4 rounded-full transition-all duration-200 ${
+            className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
               i < pin.length
                 ? error
                   ? "bg-vault-danger scale-110"
@@ -249,18 +364,18 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
       </div>
 
       {/* Error text */}
-      <div className="h-6 mb-4">
+      <div className="h-5 mb-3">
         {error && <p className="text-vault-danger text-xs text-center">{error}</p>}
       </div>
 
       {/* Number pad */}
-      <div className="grid grid-cols-3 gap-4 max-w-[280px]">
+      <div className="grid grid-cols-3 gap-3 max-w-[240px]">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
           <button
             key={n}
             onClick={() => handleDigit(String(n))}
             disabled={lockoutSeconds > 0 || submitting}
-            className="numpad-btn w-[76px] h-[76px] rounded-full bg-vault-surface border border-vault-border flex items-center justify-center text-2xl font-semibold text-vault-text hover:bg-vault-border transition-all duration-150 disabled:opacity-30"
+            className="numpad-btn w-[68px] h-[68px] rounded-full bg-vault-surface border border-vault-border flex items-center justify-center text-xl font-semibold text-vault-text hover:bg-vault-border transition-all duration-150 disabled:opacity-30"
           >
             {n}
           </button>
@@ -269,42 +384,52 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
         <button
           onClick={() => handleDigit("0")}
           disabled={lockoutSeconds > 0 || submitting}
-          className="numpad-btn w-[76px] h-[76px] rounded-full bg-vault-surface border border-vault-border flex items-center justify-center text-2xl font-semibold text-vault-text hover:bg-vault-border transition-all duration-150 disabled:opacity-30"
+          className="numpad-btn w-[68px] h-[68px] rounded-full bg-vault-surface border border-vault-border flex items-center justify-center text-xl font-semibold text-vault-text hover:bg-vault-border transition-all duration-150 disabled:opacity-30"
         >
           0
         </button>
         <button
           onClick={handleBackspace}
           disabled={lockoutSeconds > 0 || submitting}
-          className="numpad-btn w-[76px] h-[76px] rounded-full flex items-center justify-center text-vault-muted hover:text-vault-text transition-colors disabled:opacity-30"
+          className="numpad-btn w-[68px] h-[68px] rounded-full flex items-center justify-center text-vault-muted hover:text-vault-text transition-colors disabled:opacity-30"
         >
-          <Delete className="w-6 h-6" />
+          <Delete className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Forgot PIN link */}
-      {mode === "unlock" && (
+      {/* Action links */}
+      <div className="mt-6 flex flex-col items-center gap-3 text-xs">
         <button
           onClick={() => {
-            setStep("recovery");
             setShowRecoveryModal(true);
             setRecoveryStep("code");
             setRecoveryInput("");
             setNewPinForRecovery("");
             setError("");
           }}
-          className="mt-8 text-sm text-vault-muted hover:text-vault-accent transition-colors"
+          className="text-vault-muted hover:text-vault-accent transition-colors"
         >
           Forgot PIN?
         </button>
-      )}
 
+        {user && (
+          <button
+            onClick={() => logout()}
+            className="flex items-center gap-1.5 text-vault-muted hover:text-vault-danger transition-colors font-medium"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Switch Account / Sign Out
+          </button>
+        )}
+      </div>
+
+      {/* Recovery Code Display Modal */}
       {showRecoveryModal && recoveryCode && (
         <div className="fixed inset-0 max-w-3xl mx-auto bg-black/70 z-[60] flex items-center justify-center p-6">
           <div className="bg-vault-surface border border-vault-border rounded-3xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 mb-4">
               <KeyRound className="w-6 h-6 text-vault-gold" />
-              <h3 className="text-lg font-semibold">Recovery Code</h3>
+              <h3 className="text-lg font-semibold">Account Recovery Code</h3>
             </div>
             <p className="text-sm text-vault-muted mb-4">
               Save this recovery code in a safe place. You&apos;ll need it if you forget your PIN.
@@ -325,6 +450,7 @@ export function PinLockScreen({ mode }: PinLockScreenProps) {
         </div>
       )}
 
+      {/* Reset PIN Modal */}
       {showRecoveryModal && !recoveryCode && (
         <div className="fixed inset-0 max-w-3xl mx-auto bg-black/70 z-[60] flex items-center justify-center p-6">
           <div className="bg-vault-surface border border-vault-border rounded-3xl p-6 max-w-sm w-full">

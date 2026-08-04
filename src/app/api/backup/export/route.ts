@@ -2,30 +2,33 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Password from "@/lib/models/Password";
 import Category from "@/lib/models/Category";
-import { verifySession } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import { encrypt } from "@/lib/encryption";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     await connectDB();
-    const allPasswords = await Password.find().lean();
-    const allCategories = await Category.find().lean();
+    const userPasswords = await Password.find({ userId: session.userId }).lean();
+    const userCategories = await Category.find({
+      $or: [{ isDefault: true }, { userId: session.userId }],
+    }).lean();
 
     const payload = JSON.stringify({
       version: 1,
+      user: session.email,
       exportedAt: new Date().toISOString(),
-      categories: allCategories,
-      passwords: allPasswords,
+      categories: userCategories,
+      passwords: userPasswords,
     });
 
-    const encrypted = encrypt(payload);
+    const encrypted = encrypt(payload, session.userId);
 
     const response = new NextResponse(JSON.stringify(encrypted), {
       headers: {

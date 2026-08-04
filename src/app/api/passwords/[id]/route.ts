@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Password from "@/lib/models/Password";
-import { verifySession } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import { encrypt, decrypt } from "@/lib/encryption";
 import type { ICipherField } from "@/lib/models/Password";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -17,7 +17,9 @@ export async function GET(_request: Request, context: RouteContext) {
     const { id } = await context.params;
     await connectDB();
 
-    const row: any = await Password.findById(id).populate("categoryId").lean();
+    const row: any = await Password.findOne({ _id: id, userId: session.userId })
+      .populate("categoryId")
+      .lean();
 
     if (!row) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -27,14 +29,14 @@ export async function GET(_request: Request, context: RouteContext) {
     let decryptedNotes = "";
 
     try {
-      decryptedPassword = decrypt(row.passwordCipher as ICipherField);
+      decryptedPassword = decrypt(row.passwordCipher as ICipherField, session.userId);
     } catch {
       decryptedPassword = "[decryption error]";
     }
 
     if (row.notesCipher) {
       try {
-        decryptedNotes = decrypt(row.notesCipher as ICipherField);
+        decryptedNotes = decrypt(row.notesCipher as ICipherField, session.userId);
       } catch {
         decryptedNotes = "[decryption error]";
       }
@@ -44,11 +46,15 @@ export async function GET(_request: Request, context: RouteContext) {
       ? row.customFields.map((field: any) => {
           let decryptedValue = "";
           try {
-            decryptedValue = decrypt(field.valueCipher as ICipherField);
+            decryptedValue = decrypt(field.valueCipher as ICipherField, session.userId);
           } catch {
             decryptedValue = "[decryption error]";
           }
-          return { id: field._id?.toString() || Math.random().toString(), label: field.label, value: decryptedValue };
+          return {
+            id: field._id?.toString() || Math.random().toString(),
+            label: field.label,
+            value: decryptedValue,
+          };
         })
       : [];
 
@@ -74,8 +80,8 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -89,25 +95,29 @@ export async function PUT(request: Request, context: RouteContext) {
     const updates: any = { updatedAt: new Date() };
 
     if (title !== undefined) updates.title = title;
-    if (password !== undefined) updates.passwordCipher = encrypt(password);
-    if (notes !== undefined) updates.notesCipher = notes ? encrypt(notes) : null;
+    if (password !== undefined) updates.passwordCipher = encrypt(password, session.userId);
+    if (notes !== undefined) updates.notesCipher = notes ? encrypt(notes, session.userId) : null;
     if (categoryId !== undefined) updates.categoryId = categoryId || null;
     if (url !== undefined) updates.url = url;
     if (isFavorite !== undefined) updates.isFavorite = isFavorite;
-    
+
     if (customFields !== undefined) {
       updates.customFields = Array.isArray(customFields)
         ? customFields.map((field: any) => ({
             label: field.label,
-            valueCipher: encrypt(field.value)
+            valueCipher: encrypt(field.value, session.userId),
           }))
         : [];
     }
 
-    const result = await Password.findByIdAndUpdate(id, updates, { new: true });
+    const result = await Password.findOneAndUpdate(
+      { _id: id, userId: session.userId },
+      updates,
+      { new: true }
+    );
 
     if (!result) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });
@@ -118,8 +128,8 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -127,10 +137,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const { id } = await context.params;
     await connectDB();
 
-    const result = await Password.findByIdAndDelete(id);
+    const result = await Password.findOneAndDelete({ _id: id, userId: session.userId });
 
     if (!result) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });

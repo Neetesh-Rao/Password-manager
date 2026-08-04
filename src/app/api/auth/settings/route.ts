@@ -1,27 +1,27 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
-import AdminAuth from "@/lib/models/AdminAuth";
-import { verifySession } from "@/lib/session";
+import User from "@/lib/models/User";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     await connectDB();
-    const admin = await AdminAuth.findOne().lean();
-    if (!admin) {
-      return NextResponse.json({ error: "Not configured" }, { status: 404 });
+    const user = await User.findById(session.userId).lean();
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json({
-      autoLockSeconds: admin.autoLockSeconds,
-      lastUnlockAt: admin.lastUnlockAt,
-      createdAt: admin.createdAt,
+      autoLockSeconds: user.autoLockSeconds ?? 60,
+      lastUnlockAt: user.lastUnlockAt,
+      createdAt: user.createdAt,
     });
   } catch (error) {
     console.error("GET settings error:", error);
@@ -30,8 +30,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const authenticated = await verifySession();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -43,13 +43,13 @@ export async function PUT(request: Request) {
     }
 
     await connectDB();
-    const admin = await AdminAuth.findOne();
-    if (!admin) {
-      return NextResponse.json({ error: "Not configured" }, { status: 404 });
+    const user = await User.findById(session.userId);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    admin.autoLockSeconds = autoLockSeconds;
-    await admin.save();
+    user.autoLockSeconds = autoLockSeconds;
+    await user.save();
 
     return NextResponse.json({ success: true });
   } catch (error) {

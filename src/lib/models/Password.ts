@@ -7,6 +7,7 @@ export interface ICipherField {
 }
 
 export interface IPassword extends Document {
+  userId: mongoose.Types.ObjectId | null;
   title: string;
   passwordCipher: ICipherField;
   notesCipher: ICipherField | null;
@@ -28,6 +29,7 @@ const CipherFieldSchema = new Schema({
 }, { _id: false });
 
 const PasswordSchema: Schema = new Schema({
+  userId: { type: Schema.Types.ObjectId, ref: "User", index: true, default: null },
   title: { type: String, required: true },
   passwordCipher: { type: CipherFieldSchema, required: true },
   notesCipher: { type: CipherFieldSchema, default: null },

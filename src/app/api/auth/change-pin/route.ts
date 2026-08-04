@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import connectDB from "@/lib/mongodb";
-import AdminAuth from "@/lib/models/AdminAuth";
-import { verifySession } from "@/lib/session";
+import User from "@/lib/models/User";
+import { getSession } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
-    const authenticated = await verifySession();
-    if (!authenticated) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -22,18 +22,23 @@ export async function POST(request: Request) {
     }
 
     await connectDB();
-    const admin = await AdminAuth.findOne();
-    if (!admin) {
-      return NextResponse.json({ error: "No admin configured" }, { status: 404 });
+    const user = await User.findById(session.userId);
+    if (!user) {
+      return NextResponse.json({ error: "User account not found" }, { status: 404 });
     }
 
-    const valid = await bcrypt.compare(currentPin, admin.pinHash);
+    const hash = user.pinHash || (user as any).pin_hash;
+    if (!hash || typeof hash !== "string") {
+      return NextResponse.json({ error: "PIN is not configured for this account" }, { status: 400 });
+    }
+
+    const valid = await bcrypt.compare(currentPin, hash);
     if (!valid) {
       return NextResponse.json({ error: "Current PIN is incorrect" }, { status: 401 });
     }
 
-    admin.pinHash = await bcrypt.hash(newPin, 12);
-    await admin.save();
+    user.pinHash = await bcrypt.hash(newPin, 12);
+    await user.save();
 
     return NextResponse.json({ success: true });
   } catch (error) {

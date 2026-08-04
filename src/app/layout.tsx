@@ -53,15 +53,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <AppProvider>{children}</AppProvider>
           </div>
         </ThemeProvider>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );

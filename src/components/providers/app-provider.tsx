@@ -10,13 +10,22 @@ import React, {
   type ReactNode,
 } from "react";
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface AppContextType {
   isSetup: boolean;
   isUnlocked: boolean;
   autoLockSeconds: number;
   loading: boolean;
+  user: UserAccount | null;
+  users: UserAccount[];
   unlock: () => void;
   lock: () => void;
+  logout: () => Promise<void>;
   setSetup: (v: boolean) => void;
   setAutoLockSeconds: (v: number) => void;
   refreshAuth: () => Promise<void>;
@@ -27,8 +36,11 @@ const AppContext = createContext<AppContextType>({
   isUnlocked: false,
   autoLockSeconds: 60,
   loading: true,
+  user: null,
+  users: [],
   unlock: () => {},
   lock: () => {},
+  logout: async () => {},
   setSetup: () => {},
   setAutoLockSeconds: () => {},
   refreshAuth: async () => {},
@@ -42,8 +54,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isSetup, setIsSetup] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [autoLockSeconds, setAutoLockSecondsState] = useState(60);
+  const [user, setUser] = useState<UserAccount | null>(null);
+  const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const lastActivityRef = useRef(Date.now());
+  const lastActivityRef = useRef(0);
   const lockTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refreshAuth = useCallback(async () => {
@@ -53,6 +67,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setIsSetup(data.isSetup);
       setIsUnlocked(data.isUnlocked);
       setAutoLockSecondsState(data.autoLockSeconds || 60);
+      setUser(data.user || null);
+      setUsers(data.user ? [data.user] : []);
     } catch {
       // network error — remain locked
     } finally {
@@ -61,7 +77,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshAuth();
+    lastActivityRef.current = Date.now();
+    void refreshAuth();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   }, [refreshAuth]);
 
   // Auto-lock via visibility API
@@ -92,7 +112,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Track user activity
     const updateActivity = () => {
       lastActivityRef.current = Date.now();
     };
@@ -123,12 +142,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const unlock = useCallback(() => {
     setIsUnlocked(true);
     lastActivityRef.current = Date.now();
-  }, []);
+    refreshAuth();
+  }, [refreshAuth]);
 
   const lock = useCallback(() => {
     fetch("/api/auth/lock", { method: "POST" });
     setIsUnlocked(false);
   }, []);
+
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setIsUnlocked(false);
+    setUser(null);
+    refreshAuth();
+  }, [refreshAuth]);
 
   const setSetup = useCallback((v: boolean) => setIsSetup(v), []);
   const setAutoLockSeconds = useCallback((v: number) => setAutoLockSecondsState(v), []);
@@ -140,8 +167,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isUnlocked,
         autoLockSeconds,
         loading,
+        user,
+        users,
         unlock,
         lock,
+        logout,
         setSetup,
         setAutoLockSeconds,
         refreshAuth,

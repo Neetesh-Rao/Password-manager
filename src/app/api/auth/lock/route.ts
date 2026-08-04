@@ -3,9 +3,9 @@
  * Clears the session cookie, locking the app.
  */
 import { NextResponse } from "next/server";
-import { clearSession } from "@/lib/session";
+import { lockSession } from "@/lib/session";
 
 export async function POST() {
-  await clearSession();
+  await lockSession();
   return NextResponse.json({ success: true });
 }

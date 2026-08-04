@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Shield, Key, FolderOpen, Clock, Search } from "lucide-react";
+import { Shield, Key, FolderOpen, Clock, Search, LogOut } from "lucide-react";
 import { useApp } from "@/components/providers/app-provider";
 import { CommandSearch } from "@/components/ui/command-search";
 import { PinLockScreen } from "@/components/pin-lock-screen";
@@ -22,7 +22,7 @@ interface Category {
 }
 
 function DashboardContent() {
-  const { isSetup, isUnlocked, loading } = useApp();
+  const { isSetup, isUnlocked, loading, user, logout } = useApp();
   const { showToast } = useToast();
   const [entries, setEntries] = useState<PasswordEntry[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -119,6 +119,10 @@ function DashboardContent() {
   const totalPasswords = entries.length;
   const totalCategories = categories.length;
 
+  const initials = user?.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "UR";
+
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
@@ -128,15 +132,22 @@ function DashboardContent() {
             <h1 className="text-2xl font-bold tracking-tight font-heading">Vault</h1>
             <p className="text-xs text-vault-muted mt-0.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-vault-success animate-pulse"></span>
-              Abhishek Raj
+              {user?.name || "User Account"} ({user?.email || ""})
             </p>
           </div>
           <div className="flex items-center gap-2">
             <CommandSearch />
             <ThemeToggle />
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold shadow-sm ml-1">
-              AR
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold shadow-sm ml-1" title={user?.name || "Account"}>
+              {initials}
             </div>
+            <button
+              onClick={logout}
+              title="Logout"
+              className="p-2 rounded-xl bg-vault-surface border border-vault-border text-vault-muted hover:text-vault-danger transition-colors ml-1"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
